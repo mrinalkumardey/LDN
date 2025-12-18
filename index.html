@@ -81,10 +81,8 @@
 
     <script src="https://unpkg.com/pdf-lib@1.17.0/dist/pdf-lib.min.js"></script>
     <script>
-        const TODAY = "2025-12-17";
-        const PT_PER_CM = 28.35; // 1 cm ≈ 28.35 pt
+        const PT_PER_CM = 28.35;
 
-        // Indian Number to Words...
         function numberToWords(numStr) {
             if (!numStr) return '';
             const [rupees, paise = '0'] = numStr.split('.');
@@ -151,26 +149,35 @@
             return `${day}${suffix} ${month}, ${year}`;
         }
 
+        function getToday() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
 
-        async function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight) {
+        async function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight, boldFont = null) {
             const words = text.split(' ');
             let line = '';
             let currentY = y;
+            const useFont = boldFont || font;
             for (let word of words) {
                 const testLine = line + word + ' ';
-                const width = font.widthOfTextAtSize(testLine, size);
+                const width = useFont.widthOfTextAtSize(testLine, size);
                 if (width > maxWidth && line !== '') {
-                    page.drawText(line.trim(), { x, y: currentY, size, font });
+                    page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
                     line = word + ' ';
                     currentY -= lineHeight;
                 } else {
                     line = testLine;
                 }
             }
-            if (line) page.drawText(line.trim(), { x, y: currentY, size, font });
+            if (line) page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
             return y - currentY + lineHeight;
         }
 
@@ -179,12 +186,12 @@
             try {
                 const { PDFDocument, StandardFonts, rgb } = PDFLib;
                 const pdfDoc = await PDFDocument.create();
-                const page = pdfDoc.addPage([595, 842]); // A4
+                const page = pdfDoc.addPage([595, 842]);
                 const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
                 const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
                 const fontSize = 11;
                 const lineHeight = fontSize * 1.4;
-                const paraGap = lineHeight * 0.8; // ~0.8 line gap between paragraphs
+                const paraGap = lineHeight * 0.8;
                 const leftMargin = 60;
                 const rightMargin = 60;
                 const maxWidth = 595 - leftMargin - rightMargin;
@@ -205,7 +212,6 @@
 
                 let logoHeight = 70;
 
-                // Logo1
                 try {
                     const logo1Bytes = await fetch('logo1.png').then(r => r.arrayBuffer());
                     const logo1 = await pdfDoc.embedPng(logo1Bytes);
@@ -221,7 +227,6 @@
                     logoHeight = Math.max(logoHeight, logo1H);
                 } catch (e) { console.error('Logo1 failed:', e); }
 
-                // Logo2
                 try {
                     const logo2Bytes = await fetch('logo2.png').then(r => r.arrayBuffer());
                     const logo2 = await pdfDoc.embedPng(logo2Bytes);
@@ -239,7 +244,6 @@
 
                 let currentY = logoY - logoHeight - PT_PER_CM * 1;
 
-                // Centered Heading
                 const heading = 'Legal Demand Notice';
                 const headingWidth = boldFont.widthOfTextAtSize(heading, fontSize + 6);
                 page.drawText(heading, {
@@ -250,7 +254,6 @@
                 });
                 currentY -= lineHeight * 2;
 
-                // Date - left
                 page.drawText(`Date: ${data.noticeDateLong}`, {
                     x: leftMargin,
                     y: currentY,
@@ -259,13 +262,11 @@
                 });
                 currentY -= lineHeight * 2;
 
-                // Ref & Subject
                 page.drawText(`Ref: SAHAYATA LOAN Loan being Account No. ${data.loanAcNo} with Bandhan Bank Ltd.`, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
                 currentY -= lineHeight;
                 page.drawText('Sub: Demand Notice for default in payment of overdue', { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
                 currentY -= lineHeight * 2;
 
-                // Customer block
                 page.drawText(data.customerName, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
                 currentY -= lineHeight;
                 const custLines = data.customerAddress.split('\n');
@@ -275,7 +276,6 @@
                 }
                 currentY -= lineHeight * 2;
 
-                // Body paragraphs with ~0.8 line gap
                 const para1 = `Under instructions from and on behalf of Our client, Bandhan Bank Limited, having its Head Office at BN 5, Infinity Adventz@5, 12th-14th Floor, Salt Lake, Kolkata 700 091 (hereinafter referred to as the "Bank" or "our Client"), do hereby address you this notice as under: -`;
                 currentY -= await drawWrappedText(page, para1, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
 
@@ -291,22 +291,22 @@
                 const para5 = `Please note that in the event of failure to pay the overdue amount, the loan account will be classified as Non-Performing Asset (NPA) and Bank will compel to recall the financial facilities given to you in accordance with the directions/guidelines issued by the Reserve Bank of India and will initiate steps for recovery of dues as per the law.`;
                 currentY -= await drawWrappedText(page, para5, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
 
-                const para6 = `For further clarifications, please contact the aforesaid Branch of the Bank on any working days and within Banking Hours or you may call our officer namely ${data.officerName} at ${data.officerPhone}.`;
-                currentY -= await drawWrappedText(page, para6, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+                // Contact paragraph - all in one line with bold name and phone
+                const contactText = `For further clarifications, please contact the aforesaid Branch of the Bank on any working days and within Banking Hours or you may call our officer namely ${data.officerName} at ${data.officerPhone}.`;
+                currentY -= await drawWrappedText(page, contactText, leftMargin, currentY, font, fontSize, maxWidth, lineHeight, boldFont) + paraGap; // Use boldFont for the entire line (name & phone will be bold)
 
                 const para7 = `Please ignore if you have already paid the amount before receiving the instant notice.`;
                 currentY -= await drawWrappedText(page, para7, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + lineHeight;
 
-                // Signature - now left-aligned
                 try {
                     const sigBytes = await fetch('signature.png').then(r => r.arrayBuffer());
                     const signature = await pdfDoc.embedPng(sigBytes);
                     const sigScale = Math.min(160 / signature.width, 80 / signature.height);
                     const sigWidth = signature.width * sigScale;
                     const sigHeight = signature.height * sigScale;
-                    currentY -= 30; // Extra gap to prevent overlap
+                    currentY -= 30;
                     page.drawImage(signature, {
-                        x: leftMargin,  // Left side
+                        x: leftMargin,
                         y: currentY,
                         width: sigWidth,
                         height: sigHeight
@@ -351,8 +351,9 @@
 
         function resetForm() {
             document.getElementById('letterForm').reset();
-            document.getElementById('asOnDate').value = TODAY;
-            document.getElementById('noticeDate').value = TODAY;
+            const today = getToday();
+            document.getElementById('asOnDate').value = today;
+            document.getElementById('noticeDate').value = today;
             updateWords();
             document.getElementById('errorMsg').textContent = '';
         }
