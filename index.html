@@ -35,6 +35,19 @@
     </style>
 </head>
 <body>
+
+<!-- Access Code Screen -->
+<div id="accessScreen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f9f9f9; z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+    <h2 style="color:#333; margin-bottom:20px;">Legal Demand Notice Generator</h2>
+    <p style="margin-bottom:20px; color:#555;">Please enter the access code to continue</p>
+    <input type="password" id="codeInput" placeholder="Access code" style="padding:12px; width:300px; font-size:16px; margin:10px 0; border:1px solid #ccc; border-radius:6px;">
+    <button onclick="verifyCode()" style="padding:12px 30px; background:#4CAF50; color:white; border:none; font-size:16px; cursor:pointer; border-radius:6px;">Submit</button>
+    <p id="msg" style="color:red; margin-top:15px; font-weight:bold;"></p>
+</div>
+
+<!-- Main Tool Content (hidden until correct code) -->
+<div id="toolContent">
+
     <div class="greeting" id="greeting"></div>
     <h2>Legal Demand Notice Generator</h2>
 
@@ -79,299 +92,318 @@
 
     <div id="loading">Generating PDF...</div>
 
-    <script src="https://unpkg.com/pdf-lib@1.17.0/dist/pdf-lib.min.js"></script>
-    <script>
-        const PT_PER_CM = 28.35;
+</div>
 
-        function numberToWords(numStr) {
-            if (!numStr) return '';
-            const [rupees, paise = '0'] = numStr.split('.');
-            const rupeesNum = parseInt(rupees.replace(/[^0-9]/g, '')) || 0;
-            const paiseNum = parseInt(paise.slice(0,2)) || 0;
+<script src="https://unpkg.com/pdf-lib@1.17.0/dist/pdf-lib.min.js"></script>
+<script>
+    // Access Code Verification
+    const VALID_CODE = 'Zxcv@123'; // Your access code
 
-            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    function verifyCode() {
+        const input = document.getElementById('codeInput').value.trim();
+        if (input === VALID_CODE) {
+            document.getElementById('accessScreen').style.display = 'none';
+            document.getElementById('toolContent').style.display = 'block';
+        } else {
+            document.getElementById('msg').textContent = 'Invalid access code. Please try again.';
+            document.getElementById('codeInput').value = '';
+        }
+    }
 
-            function convertBelowThousand(n) {
-                if (n === 0) return '';
-                if (n < 10) return ones[n];
-                if (n < 20) return teens[n - 10];
-                if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
-                return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + convertBelowThousand(n%100) : '');
-            }
+    document.getElementById('codeInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') verifyCode();
+    });
 
-            function convertIndian(n) {
-                if (n === 0) return 'Zero';
-                let str = '';
-                const crore = Math.floor(n / 10000000); n %= 10000000;
-                const lakh = Math.floor(n / 100000); n %= 100000;
-                const thousand = Math.floor(n / 1000); n %= 1000;
-                if (crore) str += convertBelowThousand(crore) + ' Crore ';
-                if (lakh) str += convertBelowThousand(lakh) + ' Lakh ';
-                if (thousand) str += convertBelowThousand(thousand) + ' Thousand ';
-                if (n) str += convertBelowThousand(n);
-                return str.trim();
-            }
+    const PT_PER_CM = 28.35;
 
-            let result = convertIndian(rupeesNum) + ' Rupees';
-            if (paiseNum > 0) result += ' and ' + convertIndian(paiseNum) + ' Paise';
-            return result + ' Only';
+    function numberToWords(numStr) {
+        if (!numStr) return '';
+        const [rupees, paise = '0'] = numStr.split('.');
+        const rupeesNum = parseInt(rupees.replace(/[^0-9]/g, '')) || 0;
+        const paiseNum = parseInt(paise.slice(0,2)) || 0;
+
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+        function convertBelowThousand(n) {
+            if (n === 0) return '';
+            if (n < 10) return ones[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
+            return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + convertBelowThousand(n%100) : '');
         }
 
-        function updateWords() {
-            const amount = document.getElementById('overdueAmount').value.trim();
-            document.getElementById('overdueWords').value = numberToWords(amount);
+        function convertIndian(n) {
+            if (n === 0) return 'Zero';
+            let str = '';
+            const crore = Math.floor(n / 10000000); n %= 10000000;
+            const lakh = Math.floor(n / 100000); n %= 100000;
+            const thousand = Math.floor(n / 1000); n %= 1000;
+            if (crore) str += convertBelowThousand(crore) + ' Crore ';
+            if (lakh) str += convertBelowThousand(lakh) + ' Lakh ';
+            if (thousand) str += convertBelowThousand(thousand) + ' Thousand ';
+            if (n) str += convertBelowThousand(n);
+            return str.trim();
         }
 
-        function validateForm() {
-            const required = ['customerName', 'customerAddress', 'loanAcNo', 'overdueAmount', 'asOnDate', 'noticeDate', 'officerName', 'officerPhone'];
-            for (let id of required) {
-                if (!document.getElementById(id).value.trim()) {
-                    document.getElementById('errorMsg').textContent = 'Please fill all required fields.';
-                    return false;
-                }
-            }
-            if (isNaN(parseFloat(document.getElementById('overdueAmount').value.replace(/,/g,'')))) {
-                document.getElementById('errorMsg').textContent = 'Overdue amount must be a valid number.';
+        let result = convertIndian(rupeesNum) + ' Rupees';
+        if (paiseNum > 0) result += ' and ' + convertIndian(paiseNum) + ' Paise';
+        return result + ' Only';
+    }
+
+    function updateWords() {
+        const amount = document.getElementById('overdueAmount').value.trim();
+        document.getElementById('overdueWords').value = numberToWords(amount);
+    }
+
+    function validateForm() {
+        const required = ['customerName', 'customerAddress', 'loanAcNo', 'overdueAmount', 'asOnDate', 'noticeDate', 'officerName', 'officerPhone'];
+        for (let id of required) {
+            if (!document.getElementById(id).value.trim()) {
+                document.getElementById('errorMsg').textContent = 'Please fill all required fields.';
                 return false;
             }
-            document.getElementById('errorMsg').textContent = '';
-            return true;
         }
-
-        function formatDateLong(dateStr) {
-            const date = new Date(dateStr);
-            const day = date.getDate();
-            const month = date.toLocaleString('en', { month: 'long' });
-            const year = date.getFullYear();
-            const suffix = ['th','st','nd','rd'][day % 10 > 3 ? 0 : day % 10] || 'th';
-            return `${day}${suffix} ${month}, ${year}`;
+        if (isNaN(parseFloat(document.getElementById('overdueAmount').value.replace(/,/g,'')))) {
+            document.getElementById('errorMsg').textContent = 'Overdue amount must be a valid number.';
+            return false;
         }
+        document.getElementById('errorMsg').textContent = '';
+        return true;
+    }
 
-        function getToday() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+    function formatDateLong(dateStr) {
+        const date = new Date(dateStr);
+        const day = date.getDate();
+        const month = date.toLocaleString('en', { month: 'long' });
+        const year = date.getFullYear();
+        const suffix = ['th','st','nd','rd'][day % 10 > 3 ? 0 : day % 10] || 'th';
+        return `${day}${suffix} ${month}, ${year}`;
+    }
 
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
+    function getToday() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-        async function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight, boldFont = null) {
-            const words = text.split(' ');
-            let line = '';
-            let currentY = y;
-            const useFont = boldFont || font;
-            for (let word of words) {
-                const testLine = line + word + ' ';
-                const width = useFont.widthOfTextAtSize(testLine, size);
-                if (width > maxWidth && line !== '') {
-                    page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
-                    line = word + ' ';
-                    currentY -= lineHeight;
-                } else {
-                    line = testLine;
-                }
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    async function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight, boldFont = null) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+        const useFont = boldFont || font;
+        for (let word of words) {
+            const testLine = line + word + ' ';
+            const width = useFont.widthOfTextAtSize(testLine, size);
+            if (width > maxWidth && line !== '') {
+                page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
+                line = word + ' ';
+                currentY -= lineHeight;
+            } else {
+                line = testLine;
             }
-            if (line) page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
-            return y - currentY + lineHeight;
         }
+        if (line) page.drawText(line.trim(), { x, y: currentY, size, font: useFont });
+        return y - currentY + lineHeight;
+    }
 
-        async function createFilledPDF() {
-            showLoading(true);
+    async function createFilledPDF() {
+        showLoading(true);
+        try {
+            const { PDFDocument, StandardFonts, rgb } = PDFLib;
+            const pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([595, 842]);
+            const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+            const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+            const fontSize = 11;
+            const lineHeight = fontSize * 1.4;
+            const paraGap = lineHeight * 0.8;
+            const leftMargin = 60;
+            const rightMargin = 60;
+            const maxWidth = 595 - leftMargin - rightMargin;
+
+            let logoY = 842 - PT_PER_CM * 0.7;
+
+            const data = {
+                customerName: document.getElementById('customerName').value.trim(),
+                customerAddress: document.getElementById('customerAddress').value.trim(),
+                loanAcNo: document.getElementById('loanAcNo').value.trim(),
+                overdueAmount: document.getElementById('overdueAmount').value.trim(),
+                overdueWords: document.getElementById('overdueWords').value,
+                asOnDate: formatDateLong(document.getElementById('asOnDate').value),
+                noticeDateLong: formatDateLong(document.getElementById('noticeDate').value),
+                officerName: document.getElementById('officerName').value.trim(),
+                officerPhone: document.getElementById('officerPhone').value.trim()
+            };
+
+            let logoHeight = 70;
+
             try {
-                const { PDFDocument, StandardFonts, rgb } = PDFLib;
-                const pdfDoc = await PDFDocument.create();
-                const page = pdfDoc.addPage([595, 842]);
-                const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-                const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-                const fontSize = 11;
-                const lineHeight = fontSize * 1.4;
-                const paraGap = lineHeight * 0.8;
-                const leftMargin = 60;
-                const rightMargin = 60;
-                const maxWidth = 595 - leftMargin - rightMargin;
-
-                let logoY = 842 - PT_PER_CM * 0.7;
-
-                const data = {
-                    customerName: document.getElementById('customerName').value.trim(),
-                    customerAddress: document.getElementById('customerAddress').value.trim(),
-                    loanAcNo: document.getElementById('loanAcNo').value.trim(),
-                    overdueAmount: document.getElementById('overdueAmount').value.trim(),
-                    overdueWords: document.getElementById('overdueWords').value,
-                    asOnDate: formatDateLong(document.getElementById('asOnDate').value),
-                    noticeDateLong: formatDateLong(document.getElementById('noticeDate').value),
-                    officerName: document.getElementById('officerName').value.trim(),
-                    officerPhone: document.getElementById('officerPhone').value.trim()
-                };
-
-                let logoHeight = 70;
-
-                try {
-                    const logo1Bytes = await fetch('logo1.png').then(r => r.arrayBuffer());
-                    const logo1 = await pdfDoc.embedPng(logo1Bytes);
-                    const targetHeight1 = logoHeight + PT_PER_CM * 0.3;
-                    const logo1Scale = targetHeight1 / logo1.height;
-                    const logo1H = logo1.height * logo1Scale;
-                    page.drawImage(logo1, {
-                        x: leftMargin,
-                        y: logoY - logo1H,
-                        width: logo1.width * logo1Scale,
-                        height: logo1H
-                    });
-                    logoHeight = Math.max(logoHeight, logo1H);
-                } catch (e) { console.error('Logo1 failed:', e); }
-
-                try {
-                    const logo2Bytes = await fetch('logo2.png').then(r => r.arrayBuffer());
-                    const logo2 = await pdfDoc.embedPng(logo2Bytes);
-                    const targetHeight2 = logoHeight + PT_PER_CM * 0.3;
-                    const logo2Scale = targetHeight2 / logo2.height;
-                    const logo2H = logo2.height * logo2Scale;
-                    page.drawImage(logo2, {
-                        x: 595 - rightMargin - (logo2.width * logo2Scale),
-                        y: logoY - logo2H,
-                        width: logo2.width * logo2Scale,
-                        height: logo2H
-                    });
-                    logoHeight = Math.max(logoHeight, logo2H);
-                } catch (e) { console.error('Logo2 failed:', e); }
-
-                let currentY = logoY - logoHeight - PT_PER_CM * 1;
-
-                const heading = 'Legal Demand Notice';
-                const headingWidth = boldFont.widthOfTextAtSize(heading, fontSize + 6);
-                page.drawText(heading, {
-                    x: (595 - headingWidth) / 2,
-                    y: currentY,
-                    size: fontSize + 6,
-                    font: boldFont
+                const logo1Bytes = await fetch('logo1.png').then(r => r.arrayBuffer());
+                const logo1 = await pdfDoc.embedPng(logo1Bytes);
+                const targetHeight1 = logoHeight + PT_PER_CM * 0.3;
+                const logo1Scale = targetHeight1 / logo1.height;
+                const logo1H = logo1.height * logo1Scale;
+                page.drawImage(logo1, {
+                    x: leftMargin,
+                    y: logoY - logo1H,
+                    width: logo1.width * logo1Scale,
+                    height: logo1H
                 });
-                currentY -= lineHeight * 2;
+                logoHeight = Math.max(logoHeight, logo1H);
+            } catch (e) { console.error('Logo1 failed:', e); }
 
-                page.drawText(`Date: ${data.noticeDateLong}`, {
+            try {
+                const logo2Bytes = await fetch('logo2.png').then(r => r.arrayBuffer());
+                const logo2 = await pdfDoc.embedPng(logo2Bytes);
+                const targetHeight2 = logoHeight + PT_PER_CM * 0.3;
+                const logo2Scale = targetHeight2 / logo2.height;
+                const logo2H = logo2.height * logo2Scale;
+                page.drawImage(logo2, {
+                    x: 595 - rightMargin - (logo2.width * logo2Scale),
+                    y: logoY - logo2H,
+                    width: logo2.width * logo2Scale,
+                    height: logo2H
+                });
+                logoHeight = Math.max(logoHeight, logo2H);
+            } catch (e) { console.error('Logo2 failed:', e); }
+
+            let currentY = logoY - logoHeight - PT_PER_CM * 1;
+
+            const heading = 'Legal Demand Notice';
+            const headingWidth = boldFont.widthOfTextAtSize(heading, fontSize + 6);
+            page.drawText(heading, {
+                x: (595 - headingWidth) / 2,
+                y: currentY,
+                size: fontSize + 6,
+                font: boldFont
+            });
+            currentY -= lineHeight * 2;
+
+            page.drawText(`Date: ${data.noticeDateLong}`, {
+                x: leftMargin,
+                y: currentY,
+                size: fontSize,
+                font
+            });
+            currentY -= lineHeight * 2;
+
+            page.drawText(`Ref: SAHAYATA LOAN Loan being Account No. ${data.loanAcNo} with Bandhan Bank Ltd.`, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
+            currentY -= lineHeight;
+            page.drawText('Sub: Demand Notice for default in payment of overdue', { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
+            currentY -= lineHeight * 2;
+
+            page.drawText(data.customerName, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
+            currentY -= lineHeight;
+            const custLines = data.customerAddress.split('\n');
+            for (let line of custLines) {
+                page.drawText(line.trim(), { x: leftMargin, y: currentY, size: fontSize, font });
+                currentY -= lineHeight;
+            }
+            currentY -= lineHeight * 2;
+
+            const para1 = `Under instructions from and on behalf of Our client, Bandhan Bank Limited, having its Head Office at BN 5, Infinity Adventz@5, 12th-14th Floor, Salt Lake, Kolkata 700 091 (hereinafter referred to as the "Bank" or "our Client"), do hereby address you this notice as under: -`;
+            currentY -= await drawWrappedText(page, para1, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+
+            const para2 = `That you approached our client for availing the aforesaid credit facility and in consideration of your said request and based on your assurances, warranties and representations, the Bank has sanctioned the said amount with an agreed rate of interest and on the terms and conditions more particularly set out in the necessary loan documents including a Demand Promissory note executed by and between the Bank, which all were duly accepted by you and utilized by you. Copies of the said documents were also handed over to you.`;
+            currentY -= await drawWrappedText(page, para2, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+
+            const para3 = `That our client states that despite having availed the aforesaid financial assistance as above, you have committed various defaults in repayment of interest and principal amount as per the due dates and/or in breach of the sanctioning conditions, the account under the said credit facility is running in pre-npa stage.`;
+            currentY -= await drawWrappedText(page, para3, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+
+            const para4 = `Please be informed that the outstanding amount of Rs. ${data.overdueAmount}/- (${data.overdueWords.toUpperCase()}) as on ${data.asOnDate} is remain unpaid and the said amount to be deposited within seven (7) days from the date of receipt of this instant notice.`;
+            currentY -= await drawWrappedText(page, para4, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+
+            const para5 = `Please note that in the event of failure to pay the overdue amount, the loan account will be classified as Non-Performing Asset (NPA) and Bank will compel to recall the financial facilities given to you in accordance with the directions/guidelines issued by the Reserve Bank of India and will initiate steps for recovery of dues as per the law.`;
+            currentY -= await drawWrappedText(page, para5, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
+
+            const contactText = `For further clarifications, please contact the aforesaid Branch of the Bank on any working days and within Banking Hours or you may call our officer namely ${data.officerName} at ${data.officerPhone}.`;
+            currentY -= await drawWrappedText(page, contactText, leftMargin, currentY, font, fontSize, maxWidth, lineHeight, boldFont) + paraGap;
+
+            const para7 = `Please ignore if you have already paid the amount before receiving the instant notice.`;
+            currentY -= await drawWrappedText(page, para7, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + lineHeight;
+
+            try {
+                const sigBytes = await fetch('signature.png').then(r => r.arrayBuffer());
+                const signature = await pdfDoc.embedPng(sigBytes);
+                const sigScale = Math.min(160 / signature.width, 80 / signature.height);
+                const sigWidth = signature.width * sigScale;
+                const sigHeight = signature.height * sigScale;
+                currentY -= 30;
+                page.drawImage(signature, {
                     x: leftMargin,
                     y: currentY,
-                    size: fontSize,
-                    font
+                    width: sigWidth,
+                    height: sigHeight
                 });
-                currentY -= lineHeight * 2;
+            } catch (e) { console.error('Signature failed:', e); }
 
-                page.drawText(`Ref: SAHAYATA LOAN Loan being Account No. ${data.loanAcNo} with Bandhan Bank Ltd.`, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
-                currentY -= lineHeight;
-                page.drawText('Sub: Demand Notice for default in payment of overdue', { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
-                currentY -= lineHeight * 2;
-
-                page.drawText(data.customerName, { x: leftMargin, y: currentY, size: fontSize, font: boldFont });
-                currentY -= lineHeight;
-                const custLines = data.customerAddress.split('\n');
-                for (let line of custLines) {
-                    page.drawText(line.trim(), { x: leftMargin, y: currentY, size: fontSize, font });
-                    currentY -= lineHeight;
-                }
-                currentY -= lineHeight * 2;
-
-                const para1 = `Under instructions from and on behalf of Our client, Bandhan Bank Limited, having its Head Office at BN 5, Infinity Adventz@5, 12th-14th Floor, Salt Lake, Kolkata 700 091 (hereinafter referred to as the "Bank" or "our Client"), do hereby address you this notice as under: -`;
-                currentY -= await drawWrappedText(page, para1, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
-
-                const para2 = `That you approached our client for availing the aforesaid credit facility and in consideration of your said request and based on your assurances, warranties and representations, the Bank has sanctioned the said amount with an agreed rate of interest and on the terms and conditions more particularly set out in the necessary loan documents including a Demand Promissory note executed by and between the Bank, which all were duly accepted by you and utilized by you. Copies of the said documents were also handed over to you.`;
-                currentY -= await drawWrappedText(page, para2, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
-
-                const para3 = `That our client states that despite having availed the aforesaid financial assistance as above, you have committed various defaults in repayment of interest and principal amount as per the due dates and/or in breach of the sanctioning conditions, the account under the said credit facility is running in pre-npa stage.`;
-                currentY -= await drawWrappedText(page, para3, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
-
-                const para4 = `Please be informed that the outstanding amount of Rs. ${data.overdueAmount}/- (${data.overdueWords.toUpperCase()}) as on ${data.asOnDate} is remain unpaid and the said amount to be deposited within seven (7) days from the date of receipt of this instant notice.`;
-                currentY -= await drawWrappedText(page, para4, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
-
-                const para5 = `Please note that in the event of failure to pay the overdue amount, the loan account will be classified as Non-Performing Asset (NPA) and Bank will compel to recall the financial facilities given to you in accordance with the directions/guidelines issued by the Reserve Bank of India and will initiate steps for recovery of dues as per the law.`;
-                currentY -= await drawWrappedText(page, para5, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + paraGap;
-
-                // Contact paragraph - all in one line with bold name and phone
-                const contactText = `For further clarifications, please contact the aforesaid Branch of the Bank on any working days and within Banking Hours or you may call our officer namely ${data.officerName} at ${data.officerPhone}.`;
-                currentY -= await drawWrappedText(page, contactText, leftMargin, currentY, font, fontSize, maxWidth, lineHeight, boldFont) + paraGap; // Use boldFont for the entire line (name & phone will be bold)
-
-                const para7 = `Please ignore if you have already paid the amount before receiving the instant notice.`;
-                currentY -= await drawWrappedText(page, para7, leftMargin, currentY, font, fontSize, maxWidth, lineHeight) + lineHeight;
-
-                try {
-                    const sigBytes = await fetch('signature.png').then(r => r.arrayBuffer());
-                    const signature = await pdfDoc.embedPng(sigBytes);
-                    const sigScale = Math.min(160 / signature.width, 80 / signature.height);
-                    const sigWidth = signature.width * sigScale;
-                    const sigHeight = signature.height * sigScale;
-                    currentY -= 30;
-                    page.drawImage(signature, {
-                        x: leftMargin,
-                        y: currentY,
-                        width: sigWidth,
-                        height: sigHeight
-                    });
-                } catch (e) { console.error('Signature failed:', e); }
-
-                return await pdfDoc.save();
-            } finally {
-                showLoading(false);
-            }
+            return await pdfDoc.save();
+        } finally {
+            showLoading(false);
         }
+    }
 
-        async function generatePDF() {
-            if (!validateForm()) return;
-            try {
-                const pdfBytes = await createFilledPDF();
-                const fileName = `Legal_Demand_Notice_${document.getElementById('loanAcNo').value.trim() || 'Loan'}.pdf`;
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                alert('Error generating PDF: ' + error.message);
-            }
+    async function generatePDF() {
+        if (!validateForm()) return;
+        try {
+            const pdfBytes = await createFilledPDF();
+            const fileName = `Legal_Demand_Notice_${document.getElementById('loanAcNo').value.trim() || 'Loan'}.pdf`;
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            alert('Error generating PDF: ' + error.message);
         }
+    }
 
-        async function printPDF() {
-            if (!validateForm()) return;
-            try {
-                const pdfBytes = await createFilledPDF();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const printWin = window.open(url);
-                printWin.addEventListener('load', () => printWin.print());
-            } catch (error) {
-                alert('Error printing PDF: ' + error.message);
-            }
+    async function printPDF() {
+        if (!validateForm()) return;
+        try {
+            const pdfBytes = await createFilledPDF();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const printWin = window.open(url);
+            printWin.addEventListener('load', () => printWin.print());
+        } catch (error) {
+            alert('Error printing PDF: ' + error.message);
         }
+    }
 
-        function resetForm() {
-            document.getElementById('letterForm').reset();
-            const today = getToday();
-            document.getElementById('asOnDate').value = today;
-            document.getElementById('noticeDate').value = today;
-            updateWords();
-            document.getElementById('errorMsg').textContent = '';
-        }
+    function resetForm() {
+        document.getElementById('letterForm').reset();
+        const today = getToday();
+        document.getElementById('asOnDate').value = today;
+        document.getElementById('noticeDate').value = today;
+        updateWords();
+        document.getElementById('errorMsg').textContent = '';
+    }
 
-        function updateGreeting() {
-            const hour = new Date().getHours();
-            const greeting = hour < 12 ? 'Good Morning!' : hour < 17 ? 'Good Afternoon!' : 'Good Evening!';
-            document.getElementById('greeting').textContent = greeting;
-        }
+    function updateGreeting() {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? 'Good Morning!' : hour < 17 ? 'Good Afternoon!' : 'Good Evening!';
+        document.getElementById('greeting').textContent = greeting;
+    }
 
-        window.onload = function() {
-            updateGreeting();
-            resetForm();
+    window.onload = function() {
+        updateGreeting();
+        resetForm();
 
-            document.getElementById('generateBtn').onclick = generatePDF;
-            document.getElementById('printBtn').onclick = printPDF;
-            document.getElementById('resetBtn').onclick = resetForm;
-        };
-    </script>
+        document.getElementById('generateBtn').onclick = generatePDF;
+        document.getElementById('printBtn').onclick = printPDF;
+        document.getElementById('resetBtn').onclick = resetForm;
+    };
+</script>
 </body>
 </html>
